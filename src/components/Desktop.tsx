@@ -16,7 +16,7 @@ export interface App {
   downloadable?: boolean;
 }
 
-export const Desktop = ({ onLogout, onReboot, onShutdown, onCriticalKill, onOpenAdminPanel, onLockdown, onEnterBios }: { onLogout: () => void; onReboot: () => void; onShutdown: () => void; onCriticalKill: (processName: string, type?: "kernel" | "virus" | "bluescreen" | "memory" | "corruption" | "overload") => void; onOpenAdminPanel?: () => void; onLockdown?: (protocolName: string) => void; onEnterBios?: () => void; }) => {
+export const Desktop = ({ onLogout, onReboot, onShutdown, onCriticalKill, onOpenAdminPanel, onLockdown, onEnterBios, onUpdate }: { onLogout: () => void; onReboot: () => void; onShutdown: () => void; onCriticalKill: (processName: string, type?: "kernel" | "virus" | "bluescreen" | "memory" | "corruption" | "overload") => void; onOpenAdminPanel?: () => void; onLockdown?: (protocolName: string) => void; onEnterBios?: () => void; onUpdate?: () => void; }) => {
   const [startMenuOpen, setStartMenuOpen] = useState(false);
   const [windows, setWindows] = useState<Array<{ id: string; app: App; zIndex: number; minimized?: boolean }>>([]);
   const [nextZIndex, setNextZIndex] = useState(100);
