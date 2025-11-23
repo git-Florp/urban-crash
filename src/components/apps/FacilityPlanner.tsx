@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Grid3x3, Trash2, Settings as SettingsIcon, ZoomIn, ZoomOut, Eye, Layers, Edit } from "lucide-react";
+import { Grid3x3, Trash2, Settings as SettingsIcon, ZoomIn, ZoomOut, Eye, Layers, Edit, RotateCcw, Copy, Save, Plus, Move } from "lucide-react";
 import { toast } from "sonner";
 import { saveState, loadState } from "@/lib/persistence";
 import { RoomProperties } from "./RoomProperties";
@@ -65,6 +65,7 @@ export const FacilityPlanner = () => {
   const [hallwayWidth, setHallwayWidth] = useState(40);
   const [hallwayCounter, setHallwayCounter] = useState(1);
   const [hallwayEditMode, setHallwayEditMode] = useState(false);
+  const [addRoomMode, setAddRoomMode] = useState(false);
 
   useEffect(() => {
     saveState('facility_planner_rooms', rooms);
@@ -157,31 +158,34 @@ export const FacilityPlanner = () => {
       }
     } else if (mode === "room-editor") {
       return;
-    } else if (placingRoomType) {
-      const snappedX = snapValue(x);
-      const snappedY = snapValue(y);
-      const template = ROOM_TEMPLATES[roomTemplate];
-      const newRoom: PlannerRoom = {
-        id: Date.now().toString(),
-        name: `${placingRoomType} ${rooms.length + 1}`,
-        type: placingRoomType,
-        x: snappedX,
-        y: snappedY,
-        width: template.width,
-        height: template.height,
-        sections: [],
-        doors: [],
-        connections: [],
-      };
-      setRooms([...rooms, newRoom]);
-      toast.success(`${placingRoomType} placed`);
     } else {
+      // Check if clicking on an existing room first
       const clickedRoom = rooms.find(room => 
         x >= room.x && x <= room.x + room.width &&
         y >= room.y && y <= room.y + room.height
       );
+      
       if (clickedRoom) {
         setSelectedRoomId(clickedRoom.id);
+      } else if (addRoomMode && placingRoomType) {
+        // Only place new room if in add room mode and type is selected
+        const snappedX = snapValue(x);
+        const snappedY = snapValue(y);
+        const template = ROOM_TEMPLATES[roomTemplate];
+        const newRoom: PlannerRoom = {
+          id: Date.now().toString(),
+          name: `${placingRoomType} ${rooms.length + 1}`,
+          type: placingRoomType,
+          x: snappedX,
+          y: snappedY,
+          width: template.width,
+          height: template.height,
+          sections: [],
+          doors: [],
+          connections: [],
+        };
+        setRooms([...rooms, newRoom]);
+        toast.success(`${placingRoomType} placed`);
       } else {
         setSelectedRoomId(null);
       }
@@ -218,6 +222,29 @@ export const FacilityPlanner = () => {
     setRooms(rooms.filter(r => r.id !== roomId));
     if (selectedRoomId === roomId) setSelectedRoomId(null);
     toast.success("Room deleted");
+  };
+
+  const duplicateRoom = () => {
+    if (!selectedRoomId) return;
+    const room = rooms.find(r => r.id === selectedRoomId);
+    if (!room) return;
+    const newRoom: PlannerRoom = {
+      ...room,
+      id: Date.now().toString(),
+      name: `${room.name} (Copy)`,
+      x: room.x + 20,
+      y: room.y + 20
+    };
+    setRooms([...rooms, newRoom]);
+    toast.success("Room duplicated");
+  };
+
+  const clearAll = () => {
+    setRooms([]);
+    setHallwaySegments([]);
+    setSelectedRoomId(null);
+    setSelectedHallwayId(null);
+    toast.success("All cleared");
   };
 
   const completeHallway = (endRoomId: string) => {
@@ -392,9 +419,28 @@ export const FacilityPlanner = () => {
         {mode === "facility" && (
           <>
             <div className="h-6 w-px bg-border" />
-            <Select value={placingRoomType || ""} onValueChange={setPlacingRoomType}>
+            <Button
+              size="sm"
+              variant={addRoomMode ? "default" : "outline"}
+              onClick={() => {
+                setAddRoomMode(!addRoomMode);
+                if (!addRoomMode) {
+                  toast.info("Add Room Mode: Select room type and click on canvas");
+                } else {
+                  toast.info("Add Room Mode disabled");
+                }
+              }}
+            >
+              <Plus className="w-4 h-4 mr-1.5" />
+              {addRoomMode ? "Cancel Add" : "Add Room"}
+            </Button>
+            <Select 
+              value={placingRoomType || ""} 
+              onValueChange={setPlacingRoomType}
+              disabled={!addRoomMode}
+            >
               <SelectTrigger className="w-[130px] h-8">
-                <SelectValue placeholder="Add Room..." />
+                <SelectValue placeholder="Room Type..." />
               </SelectTrigger>
               <SelectContent>
                 {roomTypes.map(type => (
@@ -403,7 +449,7 @@ export const FacilityPlanner = () => {
               </SelectContent>
             </Select>
 
-            {placingRoomType && (
+            {placingRoomType && addRoomMode && (
               <Select value={roomTemplate} onValueChange={(v) => setRoomTemplate(v as keyof typeof ROOM_TEMPLATES)}>
                 <SelectTrigger className="w-[110px] h-8">
                   <SelectValue />
@@ -420,6 +466,20 @@ export const FacilityPlanner = () => {
         )}
 
         <div className="flex gap-1.5 ml-auto">
+          <Button size="sm" variant="outline" onClick={() => {
+            const data = { rooms, hallways: hallwaySegments };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `facility-plan-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            toast.success("Facility plan exported!");
+          }} title="Export Plan">
+            <Save className="w-4 h-4 mr-1.5" />
+            Export
+          </Button>
           <Button size="sm" variant="outline" onClick={() => handleZoom(0.1)} title="Zoom In">
             <ZoomIn className="w-4 h-4" />
           </Button>
