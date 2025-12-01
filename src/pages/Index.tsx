@@ -16,6 +16,7 @@ import { DisclaimerScreen } from "@/components/DisclaimerScreen";
 import { OOBEScreen } from "@/components/OOBEScreen";
 import { ChangelogDialog } from "@/components/ChangelogDialog";
 import { UpdateScreen } from "@/components/UpdateScreen";
+import { AdminPanel } from "@/components/AdminPanel";
 
 const Index = () => {
   const [adminSetupComplete, setAdminSetupComplete] = useState(false);
@@ -47,6 +48,8 @@ const Index = () => {
   const [safeMode, setSafeMode] = useState(false);
   const [needsRecovery, setNeedsRecovery] = useState(false);
   const [inRecoveryMode, setInRecoveryMode] = useState(false);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [keyBuffer, setKeyBuffer] = useState("");
   const [oobeComplete, setOobeComplete] = useState(() => {
     return localStorage.getItem("urbanshade_oobe_complete") === "true";
   });
@@ -77,8 +80,32 @@ const Index = () => {
       setAdminSetupComplete(false);
     }
 
-    // DEL key to access BIOS, F2 for recovery
+    // Keyboard shortcuts with chromebook-friendly typed keys
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Accumulate typed characters for chromebook-friendly shortcuts
+      if (e.key.length === 1) {
+        const newBuffer = (keyBuffer + e.key.toLowerCase()).slice(-10);
+        setKeyBuffer(newBuffer);
+        
+        // Check for typed commands
+        if (newBuffer.endsWith("del") || newBuffer.endsWith("delete")) {
+          if (!booted && !inRecoveryMode) {
+            e.preventDefault();
+            if (rebooting) {
+              setRebooting(false);
+              setBlackScreen(false);
+            }
+            setShowingBiosTransition(true);
+            setTimeout(() => {
+              setBiosComplete(false);
+              setShowingBiosTransition(false);
+            }, 1500);
+            toast.info("Entering BIOS Setup...");
+            setKeyBuffer("");
+          }
+        }
+      }
+      
       // F2 for recovery mode during boot
       if (e.key === "F2" && !booted && !inRecoveryMode) {
         e.preventDefault();
@@ -105,13 +132,9 @@ const Index = () => {
     window.addEventListener("keydown", handleKeyDown);
 
     // Expose console commands to window object
-    (window as any).adminPanel = (password?: string) => {
-      if (password === "HereIsThePassword" || !password) {
-        window.open('/admin', '_blank');
-        console.log("%c[SYSTEM] Admin Panel Opened in New Tab", "color: #00ff00; font-weight: bold");
-      } else {
-        console.log("%c[ERROR] Invalid password", "color: #ff0000; font-weight: bold");
-      }
+    (window as any).adminPanel = () => {
+      setShowAdminPanel(true);
+      console.log("%c[SYSTEM] Admin Panel Opened", "color: #00ff00; font-weight: bold");
     };
 
     (window as any).maintenanceMode = () => {
@@ -149,7 +172,7 @@ const Index = () => {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [loggedIn, lockdownMode, crashed, shuttingDown, rebooting, booted, biosComplete, inRecoveryMode]);
+  }, [loggedIn, lockdownMode, crashed, shuttingDown, rebooting, booted, biosComplete, inRecoveryMode, keyBuffer]);
 
   // Check for first time tour
   useEffect(() => {
@@ -371,6 +394,13 @@ const Index = () => {
       <ChangelogDialog />
       {maintenanceMode && <MaintenanceMode onExit={() => setMaintenanceMode(false)} />}
       {showTour && <FirstTimeTour onComplete={() => setShowTour(false)} />}
+      {showAdminPanel && (
+        <AdminPanel 
+          onExit={() => setShowAdminPanel(false)} 
+          onCrash={handleAdminCrash}
+          onCustomCrash={handleCustomCrash}
+        />
+      )}
     </>
   );
 };

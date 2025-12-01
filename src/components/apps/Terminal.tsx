@@ -548,7 +548,7 @@ Use for testing purposes only.`
       setHistory(prev => [...prev, { input: cmd, output }]);
       setInput("");
       setTimeout(() => {
-        window.open('/admin', '_blank');
+        (window as any).adminPanel?.();
       }, 1000);
       return;
     } else if (cmd.startsWith("crash ")) {
