@@ -49,6 +49,18 @@ export const UserSelectionScreen = ({ onLogin, onShutdown, onRestart }: UserSele
   const users = admin ? [admin, ...additionalAccounts] : additionalAccounts;
 
   const handleUserSelect = (userId: string) => {
+    const user = users.find(u => u.id === userId);
+    
+    // If user has no password, log them in immediately
+    if (user && (!user.password || user.password.length === 0)) {
+      setLoading(true);
+      localStorage.setItem("urbanshade_current_user", JSON.stringify(user));
+      setTimeout(() => {
+        onLogin(false);
+      }, 500);
+      return;
+    }
+    
     setSelectedUser(userId);
     setPassword("");
     setError("");

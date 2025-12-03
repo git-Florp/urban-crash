@@ -331,7 +331,13 @@ export const InstallerWizard = ({ onComplete }: InstallerWizardProps) => {
             )}
             
             {stage === "welcome" && (
-              <WelcomeScreen onNext={() => setStage("install-type")} />
+              <WelcomeScreen 
+                onNext={() => setStage("install-type")} 
+                onSkip={() => {
+                  // Get skip data from localStorage or use defaults
+                  onComplete({ username: "Administrator", password: "" });
+                }}
+              />
             )}
             
             {stage === "install-type" && (
@@ -439,48 +445,163 @@ const DiskLoadScreen = ({ progress, loaded, logs }: { progress: number; loaded: 
   </div>
 );
 
-const WelcomeScreen = ({ onNext }: { onNext: () => void }) => (
-  <div className="flex-1 flex flex-col">
-    <h2 className="text-2xl font-bold text-cyan-400 mb-2">Welcome to UrbanShade OS</h2>
-    <p className="text-cyan-600 text-sm mb-6">Deep Sea Facility Management System</p>
+const WelcomeScreen = ({ onNext, onSkip }: { onNext: () => void; onSkip?: () => void }) => {
+  const [showSkipDialog, setShowSkipDialog] = useState(false);
+  const [skipAdminName, setSkipAdminName] = useState("Administrator");
+  const [skipAdminPassword, setSkipAdminPassword] = useState("");
+  const [skipComputerName, setSkipComputerName] = useState("URBANSHADE-01");
+  
+  const handleSkipInstall = () => {
+    if (!skipAdminName.trim()) {
+      return;
+    }
     
-    <div className="flex-1 space-y-4">
-      <p className="text-slate-300 text-sm">
-        This wizard will install the UrbanShade Operating System on your facility terminal.
-      </p>
+    // Save defaults
+    localStorage.setItem("urbanshade_first_boot", "true");
+    localStorage.setItem("urbanshade_install_type", "standard");
+    localStorage.setItem("urbanshade_computer_name", skipComputerName);
+    
+    onSkip?.();
+  };
+  
+  if (showSkipDialog) {
+    return (
+      <div className="flex-1 flex flex-col">
+        <h2 className="text-xl font-bold text-cyan-400 mb-2">Quick Setup</h2>
+        <p className="text-cyan-600 text-sm mb-4">Configure required settings to skip installation</p>
+        
+        <div className="flex-1 space-y-4 overflow-y-auto">
+          {/* Required: Admin Info */}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Shield className="w-4 h-4 text-red-400" />
+              <span className="font-bold text-red-400 text-sm">REQUIRED: Administrator Account</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Admin Username</label>
+                <input
+                  type="text"
+                  value={skipAdminName}
+                  onChange={(e) => setSkipAdminName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-cyan-500/30 rounded text-cyan-300 text-sm focus:outline-none focus:border-cyan-400"
+                  placeholder="Administrator"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Admin Password (optional)</label>
+                <input
+                  type="password"
+                  value={skipAdminPassword}
+                  onChange={(e) => setSkipAdminPassword(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-cyan-500/30 rounded text-cyan-300 text-sm focus:outline-none focus:border-cyan-400"
+                  placeholder="Leave blank for no password"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Important Settings */}
+          <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Monitor className="w-4 h-4 text-amber-400" />
+              <span className="font-bold text-amber-400 text-sm">System Settings (Defaults)</span>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-xs text-slate-400 block mb-1">Computer Name</label>
+                <input
+                  type="text"
+                  value={skipComputerName}
+                  onChange={(e) => setSkipComputerName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-800 border border-amber-500/30 rounded text-amber-300 text-sm focus:outline-none focus:border-amber-400"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div className="p-2 bg-slate-800/50 rounded">
+                  <span className="text-slate-400">Install Type:</span>
+                  <span className="ml-2 text-cyan-400">Standard</span>
+                </div>
+                <div className="p-2 bg-slate-800/50 rounded">
+                  <span className="text-slate-400">Timezone:</span>
+                  <span className="ml-2 text-cyan-400">UTC-8 Pacific</span>
+                </div>
+                <div className="p-2 bg-slate-800/50 rounded">
+                  <span className="text-slate-400">Network:</span>
+                  <span className="ml-2 text-cyan-400">Corporate</span>
+                </div>
+                <div className="p-2 bg-slate-800/50 rounded">
+                  <span className="text-slate-400">Auto Updates:</span>
+                  <span className="ml-2 text-cyan-400">Enabled</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Info Note */}
+          <div className="bg-slate-800/50 border border-slate-600 rounded-lg p-3 text-xs text-slate-400">
+            <strong className="text-cyan-400">Note:</strong> Skipping installation will use standard defaults. 
+            You can change these settings later in Settings app.
+          </div>
+        </div>
+        
+        <div className="flex justify-between pt-4 border-t border-cyan-500/20">
+          <UrbanButton variant="ghost" onClick={() => setShowSkipDialog(false)}>← Back</UrbanButton>
+          <UrbanButton 
+            onClick={handleSkipInstall}
+            disabled={!skipAdminName.trim()}
+          >
+            Complete Setup →
+          </UrbanButton>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex-1 flex flex-col">
+      <h2 className="text-2xl font-bold text-cyan-400 mb-2">Welcome to UrbanShade OS</h2>
+      <p className="text-cyan-600 text-sm mb-6">Deep Sea Facility Management System</p>
       
-      <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4">
-        <p className="font-bold text-cyan-400 mb-3 text-sm">Setup will configure:</p>
-        <ul className="space-y-2 text-slate-300 text-sm">
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            Core STNDT operating system
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            Facility management & monitoring tools
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            Security & containment protocols
-          </li>
-          <li className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-            Administrator account creation
-          </li>
-        </ul>
+      <div className="flex-1 space-y-4">
+        <p className="text-slate-300 text-sm">
+          This wizard will install the UrbanShade Operating System on your facility terminal.
+        </p>
+        
+        <div className="bg-slate-800/50 border border-cyan-500/20 rounded-lg p-4">
+          <p className="font-bold text-cyan-400 mb-3 text-sm">Setup will configure:</p>
+          <ul className="space-y-2 text-slate-300 text-sm">
+            <li className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              Core STNDT operating system
+            </li>
+            <li className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              Facility management & monitoring tools
+            </li>
+            <li className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              Security & containment protocols
+            </li>
+            <li className="flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              Administrator account creation
+            </li>
+          </ul>
+        </div>
+        
+        <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 text-xs text-cyan-300">
+          <strong>Tip:</strong> You can configure system options while files are being installed.
+        </div>
       </div>
       
-      <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 text-xs text-cyan-300">
-        <strong>Tip:</strong> You can configure system options while files are being installed.
+      <div className="flex justify-between pt-4 border-t border-cyan-500/20">
+        <UrbanButton variant="ghost" onClick={() => setShowSkipDialog(true)}>Skip Installation</UrbanButton>
+        <UrbanButton onClick={onNext}>Begin Installation →</UrbanButton>
       </div>
     </div>
-    
-    <div className="flex justify-end pt-4 border-t border-cyan-500/20">
-      <UrbanButton onClick={onNext}>Begin Installation →</UrbanButton>
-    </div>
-  </div>
-);
+  );
+};
 
 const InstallTypeScreen = ({ installType, setInstallType, onBack, onNext }: {
   installType: string;
