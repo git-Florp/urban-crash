@@ -57,6 +57,7 @@ const AVAILABLE_APPS: StoreApp[] = [
   { id: "biometric", name: "Biometric Scanner", category: "Security", description: "Fingerprint and iris scanning", version: "5.0.2", size: "9.4 MB", rating: 4.8 },
   { id: "encryption", name: "File Encryptor", category: "Security", description: "Military-grade encryption", version: "6.2.0", size: "4.8 MB", rating: 4.9 },
   { id: "password-manager", name: "Password Vault", category: "Security", description: "Secure password storage", version: "7.1.3", size: "5.6 MB", rating: 4.7 },
+  { id: "img-editor", name: ".Img Editor", category: "System", description: "Edit recovery images and system snapshots", version: "1.0.0", size: "2.1 MB", rating: 4.6 },
 ];
 
 export const AppStore = ({ onInstall }: { onInstall?: (appId: string) => void }) => {

@@ -589,6 +589,20 @@ export const Desktop = ({
       icon: <KeyRound className="w-11 h-11" />,
       run: () => openWindow(allApps[66]),
       downloadable: true
+    },
+    {
+      id: "img-editor",
+      name: ".Img Editor",
+      icon: <FileArchive className="w-11 h-11" />,
+      run: () => openWindow(allApps[67]),
+      downloadable: true
+    },
+    {
+      id: "account-settings",
+      name: "Account Settings",
+      icon: <Users className="w-11 h-11" />,
+      run: () => openWindow(allApps[68]),
+      minimalInclude: true
     }
   ];
 
